@@ -62,13 +62,30 @@ def format_short(t, max_title=30):
     title = t['title']
     if len(title) > max_title:
         title = title[:max_title-3] + '...'
+    status_emoji = '🗑' if t.get('deleted') else ('✅' if t['status'] == 'selesai' else '⌛')
     return {
         'id': str(t['id']),
         'title': title,
         'date': format_date(t['date']),
-        'status': t['status'],
-        'del': '✖' if t.get('deleted') else '✔'
+        'status': status_emoji,
+        'del': '🗑' if t.get('deleted') else ''
     }
+
+
+# ---------------- styles (ANSI) ----------------
+RESET = '\033[0m'
+BOLD = '\033[1m'
+GREEN = '\033[92m'
+YELLOW = '\033[93m'
+RED = '\033[91m'
+CYAN = '\033[96m'
+MAGENTA = '\033[95m'
+
+
+def colored_status_label(t):
+    if t.get('deleted'):
+        return RED + 'DIHAPUS' + RESET
+    return GREEN + 'SELESAI' + RESET if t['status'] == 'selesai' else YELLOW + 'BELUM' + RESET
 
 
 def print_table(tasks, include_deleted=True, show_only_deleted=False, title='Daftar Tugas ✨'):
@@ -90,9 +107,9 @@ def print_table(tasks, include_deleted=True, show_only_deleted=False, title='Daf
         id_w = 4
         title_w = 30
         date_w = 10
-        status_w = 9
-        del_w = 3
-        header = f"║ {'ID':<{id_w}} │ {'Judul':<{title_w}} │ {'Tanggal':<{date_w}} │ {'Status':<{status_w}} │ {'D':<{del_w}} ║"
+        status_w = 3
+        del_w = 2
+        header = f"║ {'ID':<{id_w}} │ {'Judul':<{title_w}} │ {'Tanggal':<{date_w}} │ {'S':<{status_w}} │ {'D':<{del_w}} ║"
         inner_w = len(header) - 2
         top = '╔' + '═' * inner_w + '╗'
         sep_top = '╠' + '═' * inner_w + '╣'
@@ -101,7 +118,7 @@ def print_table(tasks, include_deleted=True, show_only_deleted=False, title='Daf
 
         print()
         print(top)
-        title_line = f"║ {title.center(inner_w-2)} ║"
+        title_line = f"║ {(' ' + title + '✨').center(inner_w-2)}║"
         print(title_line)
         print(sep_top)
         print(header)
@@ -111,6 +128,9 @@ def print_table(tasks, include_deleted=True, show_only_deleted=False, title='Daf
             print(line)
         print(bottom)
         print()
+        # legenda
+        print('Legenda: ✅ selesai   ⌛ belum   🗑️ dihapus')
+        print(f"{GREEN}SELESAI{RESET}  {YELLOW}BELUM{RESET}  {RED}DIHAPUS{RESET}")
         input('Tekan Enter untuk kembali ke menu...')
     except Exception as e:
         print('Gagal menampilkan tabel:', e)
@@ -122,8 +142,9 @@ def print_compact_list(tasks, include_deleted=False):
     for t in sorted(tasks, key=lambda x: x['id']):
         if not include_deleted and t.get('deleted'):
             continue
-        del_mark = ' (DIHAPUS)' if t.get('deleted') else ''
-        print(f"[{t['id']}] {t['title']}{del_mark} - {format_date(t['date'])} - {t['status']}")
+        emoji = '🗑' if t.get('deleted') else ('✅' if t['status'] == 'selesai' else '⌛')
+        status_label = colored_status_label(t)
+        print(f"[{t['id']}] {emoji} {t['title']} - {format_date(t['date'])} - {status_label}")
         listed = True
     if not listed:
         print('Tidak ada tugas.')
@@ -183,7 +204,7 @@ def add_task(tasks):
 
 
 def list_all(tasks, include_deleted=True):
-    title = 'Daftar Semua Tugas ✨' if include_deleted else 'Daftar Aktif ✨'
+    title = 'Daftar Semua Tugas ' if include_deleted else 'Daftar Aktif ✨'
     print_table(tasks, include_deleted=include_deleted, show_only_deleted=False, title=title)
 
 
@@ -328,20 +349,20 @@ def view_history(tasks):
 def main_menu():
     tasks = load_tasks()
     while True:
-        print('\n=== TO-DO LIST MENU ===')
-        print('1. Tambah tugas/kegiatan/acara')
-        print('2. Lihat semua data (termasuk yang dihapus)')
-        print('3. Lihat data aktif (tidak dihapus)')
-        print('4. Lihat data terhapus (trash)')
-        print('5. Lihat detail & riwayat tugas')
-        print('6. Edit tugas')
-        print('7. Hapus tugas (ke trash)')
-        print('8. Pulihkan tugas dari trash')
-        print('9. Hapus permanen tugas')
-        print('10. Tandai selesai/belum selesai')
-        print('11. Simpan ke disk')
-        print('12. Muat dari disk')
-        print('0. Keluar')
+        print('\n' + BOLD + CYAN + '=== TO-DO LIST MENU ✨ ʕ•ᴥ•ʔ ===' + RESET)
+        print('1. ➕  Tambah tugas/kegiatan/acara')
+        print('2. 📋  Lihat semua data (termasuk yang dihapus)')
+        print('3. 🟢  Lihat data aktif (tidak dihapus)')
+        print('4. 🗑️  Lihat data terhapus (trash)')
+        print('5. 🔎  Lihat detail & riwayat tugas')
+        print('6. ✏️  Edit tugas')
+        print('7. 🗂️  Hapus tugas (ke trash)')
+        print('8. ♻️  Pulihkan tugas dari trash')
+        print('9. 🗡️  Hapus permanen tugas')
+        print('10. ✅/❌  Tandai selesai/belum selesai')
+        print('11. 💾  Simpan ke disk')
+        print('12. 📥  Muat dari disk')
+        print('0. 🚪  Keluar')
 
         choice = input('Pilih nomor: ').strip()
         if choice == '1':
