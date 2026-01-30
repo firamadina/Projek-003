@@ -58,11 +58,75 @@ def input_date():
 def format_date(d):
     return f"{d['day']:02d}/{d['month']:02d}/{d['year']}"
 
+def format_short(t, max_title=30):
+    title = t['title']
+    if len(title) > max_title:
+        title = title[:max_title-3] + '...'
+    return {
+        'id': str(t['id']),
+        'title': title,
+        'date': format_date(t['date']),
+        'status': t['status'],
+        'del': '✖' if t.get('deleted') else '✔'
+    }
 
-def show_task_row(t):
-    status = t['status']
-    del_mark = ' (DIHAPUS)' if t.get('deleted') else ''
-    print(f"[{t['id']}] {t['title']}{del_mark} - {format_date(t['date'])} - {status}")
+
+def print_table(tasks, include_deleted=True, show_only_deleted=False, title='Daftar Tugas ✨'):
+    try:
+        rows = []
+        for t in sorted(tasks, key=lambda x: x['id']):
+            if show_only_deleted and not t.get('deleted'):
+                continue
+            if not include_deleted and t.get('deleted'):
+                continue
+            rows.append(format_short(t))
+        if not rows:
+            print('\n╭─( •́ .̫ •̀ )─╮')
+            print('|   Tidak ada tugas.    |')
+            print('╰───────────────╯\n')
+            input('Tekan Enter untuk kembali ke menu...')
+            return
+
+        id_w = 4
+        title_w = 30
+        date_w = 10
+        status_w = 9
+        del_w = 3
+        header = f"║ {'ID':<{id_w}} │ {'Judul':<{title_w}} │ {'Tanggal':<{date_w}} │ {'Status':<{status_w}} │ {'D':<{del_w}} ║"
+        inner_w = len(header) - 2
+        top = '╔' + '═' * inner_w + '╗'
+        sep_top = '╠' + '═' * inner_w + '╣'
+        sep = '╟' + '─' * inner_w + '╢'
+        bottom = '╚' + '═' * inner_w + '╝'
+
+        print()
+        print(top)
+        title_line = f"║ {title.center(inner_w-2)} ║"
+        print(title_line)
+        print(sep_top)
+        print(header)
+        print(sep)
+        for r in rows:
+            line = f"║ {r['id']:<{id_w}} │ {r['title']:<{title_w}} │ {r['date']:<{date_w}} │ {r['status']:<{status_w}} │ {r['del']:<{del_w}} ║"
+            print(line)
+        print(bottom)
+        print()
+        input('Tekan Enter untuk kembali ke menu...')
+    except Exception as e:
+        print('Gagal menampilkan tabel:', e)
+        input('Tekan Enter untuk kembali ke menu...')
+
+
+def print_compact_list(tasks, include_deleted=False):
+    listed = False
+    for t in sorted(tasks, key=lambda x: x['id']):
+        if not include_deleted and t.get('deleted'):
+            continue
+        del_mark = ' (DIHAPUS)' if t.get('deleted') else ''
+        print(f"[{t['id']}] {t['title']}{del_mark} - {format_date(t['date'])} - {t['status']}")
+        listed = True
+    if not listed:
+        print('Tidak ada tugas.')
 
 
 def find_task(tasks, tid):
@@ -119,15 +183,8 @@ def add_task(tasks):
 
 
 def list_all(tasks, include_deleted=True):
-    print('\n=== Daftar Tugas ===')
-    listed = False
-    for t in sorted(tasks, key=lambda x: x['id']):
-        if not include_deleted and t.get('deleted'):
-            continue
-        show_task_row(t)
-        listed = True
-    if not listed:
-        print('Tidak ada tugas.')
+    title = 'Daftar Semua Tugas ✨' if include_deleted else 'Daftar Aktif ✨'
+    print_table(tasks, include_deleted=include_deleted, show_only_deleted=False, title=title)
 
 
 def view_details(tasks):
@@ -219,25 +276,25 @@ def purge_task(tasks):
 
 
 def toggle_status(tasks):
-    tid = input_int_in_range('Masukan ID tugas: ', 1, 10_000_000)
+    print('\n=== Ubah Status Tugas ===')
+    print_compact_list(tasks, include_deleted=False)
+    tid = input_int_in_range('Masukan ID tugas yang akan diubah statusnya: ', 1, 10_000_000)
     t = find_task(tasks, tid)
     if not t:
         print('Tugas tidak ditemukan.')
         return
     print(f'Status saat ini: {t["status"]}')
-    print('1. Tandai selesai')
-    print('2. Tandai belum selesai')
+    print('1. Tandai selesai ✅')
+    print('2. Tandai belum ❌')
     choice = input('Pilih (1/2): ').strip()
-    t = find_task(tasks, tid)
-    if not t:
-        print('Tugas tidak ditemukan.')
-        return
-    if t['status'] == 'belum':
+    if choice == '1':
         t['status'] = 'selesai'
         print('Tugas ditandai selesai.')
-    else:
+    elif choice == '2':
         t['status'] = 'belum'
         print('Tugas ditandai belum selesai.')
+    else:
+        print('Pilihan tidak diketahui.')
 
 
 def view_history(tasks):
@@ -294,14 +351,7 @@ def main_menu():
         elif choice == '3':
             list_all(tasks, include_deleted=False)
         elif choice == '4':
-            print('\n=== Trash ===')
-            any_trash = False
-            for t in tasks:
-                if t.get('deleted'):
-                    show_task_row(t)
-                    any_trash = True
-            if not any_trash:
-                print('Trash kosong.')
+            print_table(tasks, include_deleted=True, show_only_deleted=True, title='Trash 🗑️')
         elif choice == '5':
             view_details(tasks)
             if input('Lihat riwayat/edit? (y/n): ').lower().startswith('y'):
