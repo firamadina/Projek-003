@@ -224,6 +224,14 @@ def toggle_status(tasks):
     if not t:
         print('Tugas tidak ditemukan.')
         return
+    print(f'Status saat ini: {t["status"]}')
+    print('1. Tandai selesai')
+    print('2. Tandai belum selesai')
+    choice = input('Pilih (1/2): ').strip()
+    t = find_task(tasks, tid)
+    if not t:
+        print('Tugas tidak ditemukan.')
+        return
     if t['status'] == 'belum':
         t['status'] = 'selesai'
         print('Tugas ditandai selesai.')
